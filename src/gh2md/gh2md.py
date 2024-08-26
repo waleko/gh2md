@@ -130,8 +130,8 @@ def parse_args(args):
         dest="include_prs",
     )
     parser.add_argument(
-        "--no-closed-prs",
-        help="Don't include closed pull requests in the export.",
+        "--only-merged-prs",
+        help="Don't include open and closed pull requests in the export.",
         action="store_false",
         dest="include_closed_prs",
     )
@@ -142,8 +142,8 @@ def parse_args(args):
         dest="include_issues",
     )
     parser.add_argument(
-        "--no-closed-issues",
-        help="Don't include closed issues in the export.",
+        "--only-closed-issues",
+        help="Don't include open issues in the export.",
         action="store_false",
         dest="include_closed_issues",
     )
@@ -433,14 +433,14 @@ class GithubAPI:
         if include_issues:
             variables["issuePerPage"] = self.per_page
             if not include_closed_issues:
-                variables["issueStates"] = ["OPEN"]
+                variables["issueStates"] = ["CLOSED"]
         else:
             variables["issuePerPage"] = 0
 
         if include_prs:
             variables["pullRequestPerPage"] = self.per_page
             if not include_closed_prs:
-                variables["pullRequestStates"] = ["OPEN"]
+                variables["pullRequestStates"] = ["MERGED"]
         else:
             variables["pullRequestPerPage"] = 0
 
@@ -626,22 +626,38 @@ class GithubAPI:
                         user_login=c["author"]["login"]
                         if c.get("author")
                         else "(unknown)",
-                        user_url=c["author"]["url"] if c.get("author") else "(unknown)",
-                        user_avatar_url=c["author"]["avatarUrl"]
-                        if c.get("author")
-                        else "(unknown)",
-                        url=c["url"],
+                        user_url="",
+                        user_avatar_url="",
+                        url="",
                     )
                 )
             except Exception:
                 logger.warning(f"Error parsing comment, skipping: {c}", exc_info=True)
+        if is_pull_request:
+            # get diff
+            url = i["url"] + ".diff"
+            try:
+                resp = requests.get(url)
+                resp.raise_for_status()
+                diff = resp.text
+                body = f"Resulting diff for the pull request:\n```diff\n{diff}\n```"
+                comments.append(
+                    GithubComment(
+                        created_at=dateutil_parse(i["createdAt"]),
+                        body=body,
+                        user_login="diff-automation",
+                        user_url="",
+                        user_avatar_url="",
+                        url=url,
+                    )
+                )
+            except Exception:
+                logger.warning(f"Error fetching diff for PR, skipping: {url}", exc_info=True)
         return GithubIssue(
             pull_request=is_pull_request,
             user_login=i["author"]["login"] if i.get("author") else "(unknown)",
-            user_url=i["author"]["url"] if i.get("author") else "(unknown)",
-            user_avatar_url=i["author"]["avatarUrl"]
-            if i.get("author")
-            else "(unknown)",
+            user_url="",
+            user_avatar_url="",
             state=i["state"].lower(),
             body=i["body"],
             number=i["number"],
