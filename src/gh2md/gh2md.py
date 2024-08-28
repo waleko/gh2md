@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from dateutil.parser import parse as dateutil_parse
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
 
 from . import templates_markdown, __version__
 
@@ -373,7 +375,10 @@ class GithubAPI:
             raise ValueError(f"no match for {pr_url}")
         owner, repo, pull_id = match.groups()
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pull_id}"
-        resp = self._request_session().get(url, headers={
+        s = self._request_session()
+        r = Retry(total=5, backoff_factor=0.3)
+        s.mount("https://", HTTPAdapter(max_retries=r))
+        resp = s.get(url, headers={
             "Accept": "application/vnd.github.v3.patch"
         })
         resp.raise_for_status()
