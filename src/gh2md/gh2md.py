@@ -366,22 +366,18 @@ class GithubAPI:
         return self._session
 
     def _get_pr_diff(self, pr_url: str) -> str:
-        try:
-            # pr_url is like https://github.com/owner/repo/pull/1
-            # convert to https://api.github.com/repos/owner/repo/pulls/1 using regex
-            match = re.fullmatch(r"^.*?github.com/(.*?)/(.*?)/pull/(.*?)$", pr_url)
-            if not match:
-                raise ValueError(f"no match for {pr_url}")
-            owner, repo, pull_id = match.groups()
-            url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pull_id}"
-            resp = self._request_session().get(url, headers={
-                "Accept": "application/vnd.github.v3.patch"
-            })
-            resp.raise_for_status()
-            return resp.text
-        except Exception:
-            logger.warning(f"Error fetching diff for PR, skipping: {url}", exc_info=True)
-            return ""
+        # pr_url is like https://github.com/owner/repo/pull/1
+        # convert to https://api.github.com/repos/owner/repo/pulls/1 using regex
+        match = re.fullmatch(r"^.*?github.com/(.*?)/(.*?)/pull/(.*?)$", pr_url)
+        if not match:
+            raise ValueError(f"no match for {pr_url}")
+        owner, repo, pull_id = match.groups()
+        url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pull_id}"
+        resp = self._request_session().get(url, headers={
+            "Accept": "application/vnd.github.v3.patch"
+        })
+        resp.raise_for_status()
+        return resp.text
 
     def _post(
         self, json: Dict[str, Any], headers: Optional[Dict[str, Any]] = None
