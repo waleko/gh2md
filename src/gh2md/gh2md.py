@@ -482,6 +482,7 @@ class GithubAPI:
                     json={"query": self._REPO_QUERY, "variables": variables}
                 )
                 if err:
+                    logger.info("Error in response, breaking")
                     break
                 else:
                     success_responses.append(data)
@@ -557,6 +558,7 @@ class GithubAPI:
                         json={"query": self._NODE_COMMENT_QUERY, "variables": variables}
                     )
                     if err:
+                        logger.info("Error in comment response, breaking")
                         break
                     else:
                         comments = data["data"]["node"]["comments"]
