@@ -82,6 +82,7 @@ class GithubIssue:
     label_names: List[str]
     title: str
     created_at: datetime.datetime
+    closed_at: datetime.datetime
     url: str
 
 
@@ -213,6 +214,7 @@ class GithubAPI:
                 body
                 state
                 createdAt
+                closedAt
                 author {
                   login
                   url
@@ -262,6 +264,7 @@ class GithubAPI:
                 body
                 state
                 createdAt
+                closedAt
                 author {
                   login
                   url
@@ -681,6 +684,7 @@ class GithubAPI:
             number=i["number"],
             title=i["title"],
             created_at=dateutil_parse(i["createdAt"]),
+            closed_at=dateutil_parse(i["closedAt"]),
             url=i["url"],
             label_names=[node["name"] for node in i["labels"]["nodes"]],
             comments=comments,
@@ -802,7 +806,7 @@ def format_issue_to_markdown(issue: GithubIssue) -> Tuple[str, str]:
     )
     slug = ".".join(
         [
-            issue.created_at.strftime("%Y-%m-%d"),
+            issue.closed_at.strftime("%Y-%m-%d"),
             str(issue.number),
             slugtype,
             issue.state,
